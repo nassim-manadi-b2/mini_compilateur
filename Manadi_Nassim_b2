@@ -1,0 +1,594 @@
+package com.mycompany.zaamadwaa;
+
+import java.io.*;
+import java.util.*;
+
+// ---------------- LA PREMIERE CLASS TOKEN ----------------
+class TOKEN {
+    enum TYPETOKEN {
+        // Mots-clés
+        IF, ELIF, ELSE, WHILE, FOR, TRY, EXCEPT, BREAK, CONTINUE,
+        OR, AND, NOT, TRUE, FALSE, DEF, CLASSE, PRINT,
+        MATCH, CASE,UNDERSCORE,
+
+        // Identificateurs
+        IDENTIFICATEUR, NOMBRE, CHAINE,
+
+        // Opérateurs
+        EGAL, DOUBLE_EGAL, NO_EGAL, INF, INF_OU_EGAL, SUP, SUP_OU_EGAL,
+        PLUS, MOIN, MULT, DIV, MOD,
+        PLUS_EGAL, MOIN_EGAL, MULT_EGAL, DIV_EGAL, MOD_EGAL,
+
+        // Séparateurs
+        PARENT_OUV, PARENT_FER, DEUX_POINT, VERGULE,
+
+        // Contrôleur de lignes/blocs
+        NEWLINE, INDENT, DEDENT,
+
+        // Fin 
+        EOF
+    }
+
+    public final String lexeme;
+    public final TYPETOKEN token;
+
+    public TOKEN(String lexeme, TYPETOKEN token) {
+        this.lexeme = lexeme;
+        this.token = token;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ---------------- LA DEUXIEME CLASS Analyseur lexical ----------------
+
+class Analyseur_lexical {
+    private final String code;
+    private int i = 0;
+    private int esp = 0;
+    private int compteur = 0;
+
+    public Analyseur_lexical(String code) {
+        this.code = code;
+    }
+
+    private void ignorerEspacesInline() {
+        while (i < code.length() && (code.charAt(i) == ' ' || code.charAt(i) == '\t')) {
+            i++;
+        }
+    }
+
+    private boolean Caractere(char c) {
+        return Character.isLetter(c) || c == '_';
+    }
+
+    private boolean chiffre(char c) {
+        return Character.isDigit(c);
+    }
+
+    private String avancerIdent() {
+        StringBuilder sb = new StringBuilder();
+        while (i < code.length() && (Caractere(code.charAt(i)) || chiffre(code.charAt(i)))) {
+            sb.append(code.charAt(i));
+            i++;
+        }
+        return sb.toString();
+    }
+
+    private String avancerNombre() {
+        StringBuilder sb = new StringBuilder();
+        while (i < code.length() && chiffre(code.charAt(i))) {
+            sb.append(code.charAt(i));
+            i++;
+        }
+        return sb.toString();
+    }
+
+    private int tab() {
+        int cpt = 0;
+        while (i < code.length() && (code.charAt(i) == ' ' || code.charAt(i) == '\t')) {
+            if (code.charAt(i) == '\t') {
+                cpt++;
+                i++;
+            } else {
+                int k = 0;
+                while (k < 1 && i < code.length() && code.charAt(i) == ' ') {
+                    k++;
+                    i++;
+                }
+                if (k == 1) cpt++;
+            }
+        }
+        return cpt;
+    }
+
+    public List<TOKEN> Analyser() {
+        List<TOKEN> tokens = new ArrayList<>();
+
+        while (i < code.length()) {
+            ignorerEspacesInline();
+            if (i >= code.length()) break;
+
+            char c = code.charAt(i);
+
+            // Identificateurs / mots-clés
+            if (Caractere(c)) {
+                String mot = avancerIdent();
+                switch (mot) {
+                    case "if": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.IF)); break;
+                    case "elif": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.ELIF)); break;
+                    case "else": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.ELSE)); break;
+                    case "while": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.WHILE)); break;
+                    case "for": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.FOR)); break;
+                    case "try": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.TRY)); break;
+                    case "except": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.EXCEPT)); break;
+                    case "break": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.BREAK)); break;
+                    case "continue": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.CONTINUE)); break;
+                    case "def": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.DEF)); break;
+                    case "classe": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.CLASSE)); break;
+                    case "or": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.OR)); break;
+                    case "and": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.AND)); break;
+                    case "not": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.NOT)); break;
+                    case "print": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.PRINT)); break;
+                    case "match": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.MATCH)); break;
+                    case "case": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.CASE)); break;
+                    case "true": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.TRUE)); break;
+                    case "false": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.FALSE)); break;
+                    case "_": tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.UNDERSCORE)); break;
+                    default: tokens.add(new TOKEN(mot, TOKEN.TYPETOKEN.IDENTIFICATEUR));
+                }
+            }
+            // Nombres
+            else if (chiffre(c)) {
+                String n = avancerNombre();
+                tokens.add(new TOKEN(n, TOKEN.TYPETOKEN.NOMBRE));
+            }
+            // Chaînes
+            else if (c == '"' || c == '\'') {
+                char q = c;
+                i++;
+                StringBuilder sb = new StringBuilder();
+                while (i < code.length() && code.charAt(i) != q) {
+                    sb.append(code.charAt(i));
+                    i++;
+                }
+                if (i < code.length() && code.charAt(i) == q) {
+                    i++; // fermer la chaîne
+                    tokens.add(new TOKEN(sb.toString(), TOKEN.TYPETOKEN.CHAINE));
+                } else {
+                    System.err.println("Erreur : guillemet fermant manquant");
+                }
+            }
+            // Opérateurs 
+            else if (c == '=') {
+                i++;
+                if (i < code.length() && code.charAt(i) == '=') {
+                    i++;
+                    tokens.add(new TOKEN("==", TOKEN.TYPETOKEN.DOUBLE_EGAL));
+                } else {
+                    tokens.add(new TOKEN("=", TOKEN.TYPETOKEN.EGAL));
+                }
+            } else if (c == '!') {
+                i++;
+                if (i < code.length() && code.charAt(i) == '=') {
+                    i++;
+                    tokens.add(new TOKEN("!=", TOKEN.TYPETOKEN.NO_EGAL));
+                } else {
+                    System.err.println("Erreur lexicale: '!' seul n'est pas valide en Python");
+                }
+            } else if (c == '>') {
+                i++;
+                if (i < code.length() && code.charAt(i) == '=') {
+                    i++;
+                    tokens.add(new TOKEN(">=", TOKEN.TYPETOKEN.SUP_OU_EGAL));
+                } else {
+                    tokens.add(new TOKEN(">", TOKEN.TYPETOKEN.SUP));
+                }
+            } else if (c == '<') {
+                i++;
+                if (i < code.length() && code.charAt(i) == '=') {
+                    i++;
+                    tokens.add(new TOKEN("<=", TOKEN.TYPETOKEN.INF_OU_EGAL));
+                } else {
+                    tokens.add(new TOKEN("<", TOKEN.TYPETOKEN.INF));
+                }
+            } else if (c == '+') { i++; tokens.add(new TOKEN("+", TOKEN.TYPETOKEN.PLUS)); }
+            else if (c == '-') { i++; tokens.add(new TOKEN("-", TOKEN.TYPETOKEN.MOIN)); }
+            else if (c == '*') { i++; tokens.add(new TOKEN("*", TOKEN.TYPETOKEN.MULT)); }
+            else if (c == '/') { i++; tokens.add(new TOKEN("/", TOKEN.TYPETOKEN.DIV)); }
+            else if (c == '%') { i++; tokens.add(new TOKEN("%", TOKEN.TYPETOKEN.MOD)); }
+
+            // Séparateurs
+            else if (c == ':') { i++; tokens.add(new TOKEN(":", TOKEN.TYPETOKEN.DEUX_POINT)); }
+            else if (c == '(') { i++; tokens.add(new TOKEN("(", TOKEN.TYPETOKEN.PARENT_OUV)); }
+            else if (c == ')') { i++; tokens.add(new TOKEN(")", TOKEN.TYPETOKEN.PARENT_FER)); }
+            else if (c == ',') { i++; tokens.add(new TOKEN(",", TOKEN.TYPETOKEN.VERGULE)); }
+
+            // Fin de ligne et indentation
+            else if (c == '\n' || c == '\r') {
+                if (c == '\r' && i + 1 < code.length() && code.charAt(i + 1) == '\n') i += 2;
+                else i++;
+                compteur = tab();
+                tokens.add(new TOKEN("\\n", TOKEN.TYPETOKEN.NEWLINE));
+                if (compteur > esp) {
+                    tokens.add(new TOKEN("INDENT", TOKEN.TYPETOKEN.INDENT));
+                    esp = compteur;
+                } else if (compteur < esp) {
+                    while (compteur < esp) {
+                        tokens.add(new TOKEN("DEDENT", TOKEN.TYPETOKEN.DEDENT));
+                        esp--;
+                    }
+                }
+            }
+            // Ignorer autre
+            else {
+                i++;
+            }
+        }
+
+        // Le main ajoutera EOF, donc on ne l’ajoute pas ici.
+        return tokens;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ---------------- LA TROISIEME CLASS Parser ----------------
+class Analyseur_syntaxique {
+    private final List<TOKEN> tokens;
+    private int p = 0;
+    private boolean error = false;
+
+    public Analyseur_syntaxique(List<TOKEN> tokens) {
+        this.tokens = tokens;
+    }
+
+    public void PARSE() {
+        STATEMENT_LIST(); 
+        if (!error && p < tokens.size() && tokens.get(p).token == TOKEN.TYPETOKEN.EOF) {
+            System.out.println("Le Programme est accepté");
+        } else {
+            System.err.println("Le Programme est NON accepté !");
+        }
+    }
+
+    // --------- Top-level: ignore NEWLINE & DEDENT isolés ---------
+    public void STATEMENT_LIST() {
+        while (p < tokens.size()) {
+            // Ignorer séparateurs au niveau supérieur
+            while (p < tokens.size() &&
+                   (tokens.get(p).token == TOKEN.TYPETOKEN.NEWLINE ||
+                    tokens.get(p).token == TOKEN.TYPETOKEN.DEDENT)) {
+                p++;
+            }
+
+            if (p >= tokens.size() || tokens.get(p).token == TOKEN.TYPETOKEN.EOF) return;
+
+            if (tokens.get(p).token == TOKEN.TYPETOKEN.IDENTIFICATEUR
+                || tokens.get(p).token == TOKEN.TYPETOKEN.PRINT
+                || tokens.get(p).token == TOKEN.TYPETOKEN.IF
+                || tokens.get(p).token == TOKEN.TYPETOKEN.MATCH) {
+
+                STATEMENT();
+
+                // Ignorer NEWLINE après une instruction
+                while (p < tokens.size() && tokens.get(p).token == TOKEN.TYPETOKEN.NEWLINE) {
+                    p++;
+                }
+                continue;
+            }
+
+            System.err.println("Instruction inattendue à la position " + p + " (" + tokens.get(p).lexeme + ")");
+            error = true;
+            return;
+        }
+    }
+
+    public void STATEMENT() {
+        TOKEN.TYPETOKEN t = tokens.get(p).token;
+        if (t == TOKEN.TYPETOKEN.IDENTIFICATEUR) {
+            ASSIGN_STMT();
+        } else if (t == TOKEN.TYPETOKEN.PRINT) {
+            PRINT_STMT();
+        } else if (t == TOKEN.TYPETOKEN.IF) {
+            IF_STMT();
+        } else if (t == TOKEN.TYPETOKEN.MATCH) {
+            MATCH_STMT();
+        } else {
+            System.err.println("Instruction inattendue à la position " + p + " (" + tokens.get(p).lexeme + ")");
+            error = true;
+        }
+    }
+
+    // --------- Affectation simple: ident '=' EXPR ---------
+    private void ASSIGN_STMT() {
+        // ident
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.IDENTIFICATEUR) {
+            p++;
+        } else { error = true; return; }
+
+        // '='
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.EGAL) {
+            p++;
+        } else {
+            System.err.println("Erreur : '=' attendu dans l'affectation");
+            error = true;
+            return;
+        }
+
+        // EXPR
+        EXPR();
+    }
+
+    // --------- print(...) ---------
+    private void PRINT_STMT() {
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.PRINT) { p++; } else { error = true; return; }
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.PARENT_OUV) { p++; } else { System.err.println("Erreur : '(' manquant après print"); error = true; return; }
+        // arg(s) simplifiés: EXPR [ , EXPR ]*
+        EXPR();
+        while (p < tokens.size() && tokens.get(p).token == TOKEN.TYPETOKEN.DEUX_POINT) {
+            p++;
+            EXPR();
+        }
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.PARENT_FER) { p++; } else { System.err.println("Erreur : ')' manquant après print"); error = true; }
+    }
+
+    // --------- IF simplifié ---------
+    private void IF_STMT() {
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.IF) { p++; } else { error = true; return; }
+        EXPR();
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.DEUX_POINT) { p++; } else { System.err.println("Erreur : ':' manquant après if"); error = true; return; }
+        BLOCK(); // corps if
+        // elif/else facultatifs (simplifiés)
+        while (p < tokens.size() && tokens.get(p).token == TOKEN.TYPETOKEN.ELIF) {
+            p++;
+            EXPR();
+            if (tokens.get(p).token == TOKEN.TYPETOKEN.DEUX_POINT) { p++; } else { System.err.println("Erreur : ':' manquant après elif"); error = true; return; }
+            BLOCK();
+        }
+        if (p < tokens.size() && tokens.get(p).token == TOKEN.TYPETOKEN.ELSE) {
+            p++;
+            if (tokens.get(p).token == TOKEN.TYPETOKEN.DEUX_POINT) { p++; } else { System.err.println("Erreur : ':' manquant après else"); error = true; return; }
+            BLOCK();
+        }
+    }
+
+    // --------- MATCH/CASE ---------
+    // MATCH_STMT → 'match' EXPR ':' NEWLINE INDENT CASE_BLOCK+ DEDENT
+    private void MATCH_STMT() {
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.MATCH) { p++; } else { error = true; return; }
+        EXPR(); // expression à matcher
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.DEUX_POINT) { p++; } else { System.err.println("Erreur : ':' manquant après match"); error = true; return; }
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.NEWLINE) { p++; } else { System.err.println("Erreur : retour ligne attendu après ':' dans match"); error = true; return; }
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.INDENT) { p++; } else { System.err.println("Erreur : 'INDENT' manquant après match"); error = true; return; }
+
+        // Plusieurs cases
+        while (p < tokens.size() && tokens.get(p).token == TOKEN.TYPETOKEN.CASE) {
+            CASE_BLOCK();
+        }
+
+        // Fin du bloc match
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.DEDENT) { p++; }
+        else { System.err.println("Erreur : 'DEDENT' manquant après match-case"); error = true; }
+    }
+
+    // CASE_BLOCK → 'case' PATTERN ':' NEWLINE INDENT (statements) DEDENT
+    private void CASE_BLOCK() {
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.CASE) { p++; } else { error = true; return; }
+
+        // PATTERN simplifié: EXPR ou '_' (ident)
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.UNDERSCORE ) {
+            p++; // underscore
+        } else {
+            EXPR(); // motif simple
+        }
+
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.DEUX_POINT) { p++; } else { System.err.println("Erreur : ':' manquant après case"); error = true; return; }
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.NEWLINE) { p++; } else { System.err.println("Erreur : retour ligne attendu après ':' dans case"); error = true; return; }
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.INDENT) { p++; } else { System.err.println("Erreur : 'INDENT' manquant après case"); error = true; return; }
+
+        // Corps du case jusqu’à DEDENT (sans le consommer ici)
+        BLOCK_BODY();
+
+        // Consommer le DEDENT de fin de case
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.DEDENT) { p++; }
+        else { System.err.println("Erreur : 'DEDENT' manquant après case"); error = true; }
+    }
+
+    // --------- Blocs ---------
+    // BLOCK → NEWLINE INDENT BLOCK_BODY DEDENT
+    private void BLOCK() {
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.NEWLINE) { p++; } else { System.err.println("Erreur : retour ligne attendu pour débuter le bloc"); error = true; return; }
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.INDENT) { p++; } else { System.err.println("Erreur : 'INDENT' manquant au début du bloc"); error = true; return; }
+
+        BLOCK_BODY();
+
+        if (tokens.get(p).token == TOKEN.TYPETOKEN.DEDENT) { p++; }
+        else { System.err.println("Erreur : 'DEDENT' manquant. Fin de bloc mal indentée."); error = true; }
+    }
+
+    // Parse le corps d’un bloc jusqu’à rencontrer DEDENT (sans le consommer)
+    private void BLOCK_BODY() {
+        while (p < tokens.size()) {
+            while (p < tokens.size() && tokens.get(p).token == TOKEN.TYPETOKEN.NEWLINE) {
+                p++;
+            }
+            // Arrêt à la fin du bloc
+            if (p < tokens.size() && tokens.get(p).token == TOKEN.TYPETOKEN.DEDENT) {
+                return; // laisser l'appelant consommer le DEDENT
+            }
+            if (p >= tokens.size() || tokens.get(p).token == TOKEN.TYPETOKEN.EOF) return;
+
+            if (tokens.get(p).token == TOKEN.TYPETOKEN.IDENTIFICATEUR
+                || tokens.get(p).token == TOKEN.TYPETOKEN.PRINT
+                || tokens.get(p).token == TOKEN.TYPETOKEN.IF
+                || tokens.get(p).token == TOKEN.TYPETOKEN.MATCH) {
+                STATEMENT();
+                while (p < tokens.size() && tokens.get(p).token == TOKEN.TYPETOKEN.NEWLINE) {
+                    p++;
+                }
+                continue;
+            }
+
+            System.err.println("Instruction inattendue à la position " + p + " (" + tokens.get(p).lexeme + ")");
+            error = true;
+            return;
+        }
+    }
+
+    // --------- Expressions (simplifiées) ---------
+    private void EXPR() { OR_EXPR(); }
+
+    private void OR_EXPR() { AND_EXPR(); while (match(TOKEN.TYPETOKEN.OR)) AND_EXPR(); }
+
+    private void AND_EXPR() { NOT_EXPR(); while (match(TOKEN.TYPETOKEN.AND)) NOT_EXPR(); }
+
+    private void NOT_EXPR() {
+        if (match(TOKEN.TYPETOKEN.NOT)) { NOT_EXPR(); }
+        else { COMP_EXPR(); }
+    }
+
+    private void COMP_EXPR() {
+        ADD_EXPR();
+        while (p < tokens.size() &&
+               (tokens.get(p).token == TOKEN.TYPETOKEN.DOUBLE_EGAL ||
+                tokens.get(p).token == TOKEN.TYPETOKEN.NO_EGAL ||
+                tokens.get(p).token == TOKEN.TYPETOKEN.INF ||
+                tokens.get(p).token == TOKEN.TYPETOKEN.INF_OU_EGAL ||
+                tokens.get(p).token == TOKEN.TYPETOKEN.SUP ||
+                tokens.get(p).token == TOKEN.TYPETOKEN.SUP_OU_EGAL)) {
+            p++;
+            ADD_EXPR();
+        }
+    }
+
+    private void ADD_EXPR() {
+        TERM();
+        while (p < tokens.size() &&
+               (tokens.get(p).token == TOKEN.TYPETOKEN.PLUS ||
+                tokens.get(p).token == TOKEN.TYPETOKEN.MOIN)) {
+            p++;
+            TERM();
+        }
+    }
+
+    private void TERM() {
+        FACTOR();
+        while (p < tokens.size() &&
+               (tokens.get(p).token == TOKEN.TYPETOKEN.MULT ||
+                tokens.get(p).token == TOKEN.TYPETOKEN.DIV ||
+                tokens.get(p).token == TOKEN.TYPETOKEN.MOD)) {
+            p++;
+            FACTOR();
+        }
+    }
+
+    private void FACTOR() {
+        if (p >= tokens.size()) { error = true; return; }
+        TOKEN.TYPETOKEN t = tokens.get(p).token;
+        if (t == TOKEN.TYPETOKEN.NOMBRE || t == TOKEN.TYPETOKEN.TRUE || t == TOKEN.TYPETOKEN.FALSE
+            || t == TOKEN.TYPETOKEN.IDENTIFICATEUR || t == TOKEN.TYPETOKEN.CHAINE) {
+            p++;
+        } else if (t == TOKEN.TYPETOKEN.PARENT_OUV) {
+            p++;
+            EXPR();
+            if (p < tokens.size() && tokens.get(p).token == TOKEN.TYPETOKEN.PARENT_FER) { p++; }
+            else { System.err.println("Manque parenthèse fermante"); error = true; }
+        } else {
+            System.err.println("Symbole inattendu dans FACTOR() à " + p + " (" + tokens.get(p).lexeme + ")");
+            error = true;
+        }
+    }
+
+    // Petit utilitaire
+    private boolean match(TOKEN.TYPETOKEN t) {
+        if (p < tokens.size() && tokens.get(p).token == t) { p++; return true; }
+        return false;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ---------------- LA QUATRIEME CLASS Main ----------------
+public class Main {
+    public static void main(String[] args) {
+        String cheminFichier = "/Users/manadinassim/Desktop/funcs.txt";
+        StringBuilder code = new StringBuilder();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(cheminFichier))) {
+            String ligne;
+            while ((ligne = br.readLine()) != null) { code.append(ligne).append("\n"); }
+        } catch (IOException e) { e.printStackTrace(); return; }
+
+        Analyseur_lexical lexer = new Analyseur_lexical(code.toString());
+        List<TOKEN> tokens = lexer.Analyser();
+        tokens.add(new TOKEN("EOF", TOKEN.TYPETOKEN.EOF));
+
+        // Affichage les tokens 
+        System.out.println("LA LISTE DES TOKENS OBTENUS :\n");
+        for (int k = 0; k < tokens.size(); k++) {
+            TOKEN tok = tokens.get(k);
+            System.out.println("- Le token c'est :  " + tok.lexeme + "  Et son Type est : " + tok.token);
+        }
+
+        Analyseur_syntaxique parser = new Analyseur_syntaxique(tokens);
+        parser.PARSE();
+    }
+}
+
+create Main.java

@@ -1,4 +1,4 @@
-package com.mycompany.zaamadwaa;
+package com.mycompany.projet_compilation;
 
 import java.io.*;
 import java.util.*;
@@ -567,7 +567,7 @@ class Analyseur_syntaxique {
 // ---------------- LA QUATRIEME CLASS Main ----------------
 public class Main {
     public static void main(String[] args) {
-        String cheminFichier = "/Users/manadinassim/Desktop/funcs.txt";
+        String cheminFichier = "/Users/manadinassim/Desktop/exemple.txt";
         StringBuilder code = new StringBuilder();
 
         try (BufferedReader br = new BufferedReader(new FileReader(cheminFichier))) {
@@ -590,5 +590,6 @@ public class Main {
         parser.PARSE();
     }
 }
+
 
 create Main.java

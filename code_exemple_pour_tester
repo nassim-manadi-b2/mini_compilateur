@@ -1,0 +1,11 @@
+x = 2
+
+match x:
+    case 1:
+        print("Un")
+    case 2:
+        print("Deux")
+    case 3:
+        print("Trois")
+     case _:
+        print("Autre valeur")
